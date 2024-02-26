@@ -22,7 +22,7 @@ TARGET = STM32-morasat
 # debug build?
 DEBUG = 1
 # optimization
-OPT = -Og
+OPT = -Os
 
 
 #######################################
@@ -36,32 +36,22 @@ BUILD_DIR = build
 ######################################
 # C sources
 C_SOURCES =  \
+Core/Src/bitset.c \
+Core/Src/kodolo.c \
 Core/Src/main.c \
 Core/Src/rf69.c \
-Core/Src/stm32f0xx_hal_msp.c \
 Core/Src/stm32f0xx_it.c \
 Core/Src/system_stm32f0xx.c \
-Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal.c \
-Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_cortex.c \
-Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_crc.c \
-Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_crc_ex.c \
-Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_dma.c \
-Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_exti.c \
-Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_flash.c \
-Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_flash_ex.c \
-Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_gpio.c \
-Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_i2c.c \
-Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_i2c_ex.c \
-Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_pwr.c \
-Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_pwr_ex.c \
-Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_rcc.c \
-Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_rcc_ex.c \
-Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_spi.c \
-Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_spi_ex.c \
-Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_tim.c \
-Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_tim_ex.c \
-Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c \
-Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart_ex.c
+Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_ll_crc.c \
+Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_ll_dma.c \
+Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_ll_exti.c \
+Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_ll_gpio.c \
+Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_ll_pwr.c \
+Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_ll_rcc.c \
+Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_ll_spi.c \
+Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_ll_tim.c \
+Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_ll_usart.c \
+Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_ll_utils.c
 
 
 CPP_SOURCES = \
@@ -118,14 +108,34 @@ AS_DEFS =
 
 # C defines
 C_DEFS =  \
+-DDATA_CACHE_ENABLE=0 \
+-DHSE_STARTUP_TIMEOUT=100 \
+-DHSE_VALUE=8000000 \
+-DHSI_VALUE=8000000 \
+-DINSTRUCTION_CACHE_ENABLE=0 \
+-DLSE_STARTUP_TIMEOUT=5000 \
+-DLSE_VALUE=32768 \
+-DLSI_VALUE=40000 \
+-DPREFETCH_ENABLE=1 \
 -DSTM32F030x6 \
--DUSE_HAL_DRIVER
+-DUSE_FULL_LL_DRIVER \
+-DVDD_VALUE=3300
 
 
 # CXX defines
 CXX_DEFS =  \
+-DDATA_CACHE_ENABLE=0 \
+-DHSE_STARTUP_TIMEOUT=100 \
+-DHSE_VALUE=8000000 \
+-DHSI_VALUE=8000000 \
+-DINSTRUCTION_CACHE_ENABLE=0 \
+-DLSE_STARTUP_TIMEOUT=5000 \
+-DLSE_VALUE=32768 \
+-DLSI_VALUE=40000 \
+-DPREFETCH_ENABLE=1 \
 -DSTM32F030x6 \
--DUSE_HAL_DRIVER
+-DUSE_FULL_LL_DRIVER \
+-DVDD_VALUE=3300
 
 
 # AS includes
@@ -136,8 +146,7 @@ C_INCLUDES =  \
 -ICore/Inc \
 -IDrivers/CMSIS/Device/ST/STM32F0xx/Include \
 -IDrivers/CMSIS/Include \
--IDrivers/STM32F0xx_HAL_Driver/Inc \
--IDrivers/STM32F0xx_HAL_Driver/Inc/Legacy
+-IDrivers/STM32F0xx_HAL_Driver/Inc
 
 
 

@@ -174,68 +174,67 @@ static const ModemConfig MODEM_CONFIG_TABLE[] =
 
 };
 
-static SPI_HandleTypeDef* _handle;
-
-// Arduino compatible macros
 #define LOW 0
 #define HIGH 1
+#define __SET_NSS() LL_GPIO_SetOutputPin(RF69_NSS_GPIO_Port, RF69_NSS_Pin) // RF69_NSS_GPIO_Port->BSRR = RF69_NSS_Pin
+#define __RESET_NSS() LL_GPIO_ResetOutputPin(RF69_NSS_GPIO_Port, RF69_NSS_Pin) //RF69_NSS_GPIO_Port->BRR = RF69_NSS_Pin
 #define delayMicroseconds(us) delay_us(us)
-#define delay(ms) HAL_Delay(ms)
-#define millis() HAL_GetTick()
 
-void spi_init(SPI_HandleTypeDef* handle) {
-    _handle = handle;
-	HAL_GPIO_WritePin(RF69_NSS_GPIO_Port, RF69_NSS_Pin, GPIO_PIN_SET);
+void spi_init() {
+	//__SET_NSS();
+	__SET_NSS();
 }
 
-uint8_t spi_transfer(uint8_t address)
+uint8_t spi_transfer(uint8_t dataout)
 {
-	uint8_t datain[1] = {0};
-	uint8_t dataout[1] = {0};
-    dataout[0] = address;
+	uint8_t datain = 0;
     
-    HAL_SPI_TransmitReceive(_handle, dataout, datain, 1, 1000);
+    //HAL_SPI_TransmitReceive(_handle, dataout, datain, 1, 1000);
+	//LL_SPI_WriteReg(SPI1, DR, dataout);
+	LL_SPI_TransmitData8(SPI1, dataout);
+	while (!LL_SPI_IsActiveFlag_RXNE(SPI1));
+	datain = LL_SPI_ReceiveData8(SPI1);
 
-	return datain[0];
+	return datain;
 }
 
 uint8_t spiRead(uint8_t reg)
 {
 	uint8_t val;
-    HAL_GPIO_WritePin(RF69_NSS_GPIO_Port, RF69_NSS_Pin, GPIO_PIN_RESET);
+    __RESET_NSS();
     spi_transfer(reg & ~RH_RF69_SPI_WRITE_MASK); // Send the address with the write mask off
     val = spi_transfer(0); // The written value is ignored, reg value is read
-    HAL_GPIO_WritePin(RF69_NSS_GPIO_Port, RF69_NSS_Pin, GPIO_PIN_SET);
+    __SET_NSS();
 	return val;
 }
 
 uint8_t spiWrite(uint8_t reg, uint8_t val)
 {
 	uint8_t status = 0;
-    HAL_GPIO_WritePin(RF69_NSS_GPIO_Port, RF69_NSS_Pin, GPIO_PIN_RESET);
+    __RESET_NSS();
     status = spi_transfer(reg | RH_RF69_SPI_WRITE_MASK); // Send the address with the write mask on
     spi_transfer(val); // New value follows
-    HAL_GPIO_WritePin(RF69_NSS_GPIO_Port, RF69_NSS_Pin, GPIO_PIN_SET);
+    __SET_NSS();
 	return status;
 }
 
 uint8_t spiBurstRead(uint8_t reg, uint8_t* dest, uint8_t len)
 {
 	uint8_t status = 0;
-	HAL_GPIO_WritePin(RF69_NSS_GPIO_Port, RF69_NSS_Pin, GPIO_PIN_RESET);
+	__RESET_NSS();
 	status = spi_transfer(reg & ~RH_RF69_SPI_WRITE_MASK); // Send the start address with the write mask off
 	while (len--) *dest++ = spi_transfer(0);
-	HAL_GPIO_WritePin(RF69_NSS_GPIO_Port, RF69_NSS_Pin, GPIO_PIN_SET);
+	__SET_NSS();
 	return status;
 }
 
 uint8_t spiBurstWrite(uint8_t reg, const uint8_t* src, uint8_t len)
 {
 	uint8_t status = 0;
-	HAL_GPIO_WritePin(RF69_NSS_GPIO_Port, RF69_NSS_Pin, GPIO_PIN_RESET);
+	__RESET_NSS();
 	status = spi_transfer(reg | RH_RF69_SPI_WRITE_MASK); // Send the start address with the write mask on
 	while (len--) spi_transfer(*src++);
-	HAL_GPIO_WritePin(RF69_NSS_GPIO_Port, RF69_NSS_Pin, GPIO_PIN_SET);
+	__SET_NSS();
 	return status;
 }
 
@@ -244,17 +243,17 @@ void setIdleMode(uint8_t idleMode)
 	_idleMode = idleMode;
 }
 
-bool init(SPI_HandleTypeDef* handle)
+bool init()
 {
 	// manual reset
-	HAL_GPIO_WritePin(RF69_RESET_GPIO_Port, RF69_RESET_Pin, GPIO_PIN_SET);
+	LL_GPIO_SetOutputPin(RF69_RESET_GPIO_Port, RF69_RESET_Pin);	
 	delay(100);
-	HAL_GPIO_WritePin(RF69_RESET_GPIO_Port, RF69_RESET_Pin, GPIO_PIN_RESET);
+	LL_GPIO_ResetOutputPin(RF69_RESET_GPIO_Port, RF69_RESET_Pin);
 	delay(100);
 
 	_idleMode = RH_RF69_OPMODE_MODE_STDBY;
 
-	spi_init(handle);
+	spi_init();
 
 	// Get the device type and check it
 	// This also tests whether we are really connected to a device
@@ -316,7 +315,7 @@ bool init(SPI_HandleTypeDef* handle)
 // Performance issue?
 void readFifo()
 {
-	HAL_GPIO_WritePin(RF69_NSS_GPIO_Port, RF69_NSS_Pin, GPIO_PIN_RESET);
+	__RESET_NSS();
 	spi_transfer(RH_RF69_REG_00_FIFO); // Send the start address with the write mask off
 	uint8_t payloadlen = spi_transfer(0); // First byte is payload len (counting the headers)
 	if (payloadlen <= RH_RF69_MAX_ENCRYPTABLE_PAYLOAD_LEN &&
@@ -339,7 +338,7 @@ void readFifo()
 		_rxBufValid = true;
 	}
 	}
-	HAL_GPIO_WritePin(RF69_NSS_GPIO_Port, RF69_NSS_Pin, GPIO_PIN_SET);
+	__SET_NSS();
 	// Any junk remaining in the FIFO will be cleared next time we go to receive mode.
 }
 
@@ -653,7 +652,7 @@ bool send(const uint8_t* data, uint8_t len)
 	//ESP_LOGD(TAG, "_txHeaderId=%d", _txHeaderId);
 	//ESP_LOGD(TAG, "_txHeaderFlags=%d", _txHeaderFlags);
 
-	HAL_GPIO_WritePin(RF69_NSS_GPIO_Port, RF69_NSS_Pin, GPIO_PIN_RESET);
+	__RESET_NSS();
 	spi_transfer(RH_RF69_REG_00_FIFO | RH_RF69_SPI_WRITE_MASK); // Send the start address with the write mask on
 	spi_transfer(len + RH_RF69_HEADER_LEN); // Include length of headers
 
@@ -664,7 +663,7 @@ bool send(const uint8_t* data, uint8_t len)
 	// Now the payload
 	while (len--)
 	spi_transfer(*data++);
-	HAL_GPIO_WritePin(RF69_NSS_GPIO_Port, RF69_NSS_Pin, GPIO_PIN_SET);
+	__SET_NSS();
 
 	setModeTx(); // Start the transmitter
 	delay(1);
