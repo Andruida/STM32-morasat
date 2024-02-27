@@ -9,19 +9,19 @@
 static bitset bitset_pool_usage = {.size = BITSET_POOL_SIZE, .data = (uint8_t[(BITSET_POOL_SIZE+7)/8]){0}};
 
 static bitset bitset_pool[BITSET_POOL_SIZE] = {
-    {.size = 4,.data = (uint8_t[]){0}},
-    {.size = 7,.data = (uint8_t[]){0}},
-    {.size = 7,.data = (uint8_t[]){0}},
-    {.size = 144,.data = (uint8_t[]){0}},
-    {.size = 256,.data = (uint8_t[]){0}},
-    {.size = 256,.data = (uint8_t[]){0}},  
+    {.size = 4,.data = (uint8_t[1]){0}},
+    {.size = 7,.data = (uint8_t[1]){0}},
+    {.size = 7,.data = (uint8_t[1]){0}},
+    {.size = 144,.data = (uint8_t[18]){0}},
+    {.size = 256,.data = (uint8_t[32]){0}},
+    {.size = 256,.data = (uint8_t[32]){0}},  
 };
 
 bitset* bitset_alloc(size_t size) {
     for (uint8_t i = 0; i < BITSET_POOL_SIZE; i++) {
-        if (!bitset_get(&bitset_pool_usage, i) && bitset_pool[i].size == size) {
+        if (bitset_get(&bitset_pool_usage, i) == false && bitset_pool[i].size == size) {
             bitset_set(&bitset_pool_usage, i, true);
-            bitset* b = &bitset_pool[i];
+            bitset* b = &(bitset_pool[i]);
             bitset_reset(b);
             return b;
         }
@@ -29,6 +29,7 @@ bitset* bitset_alloc(size_t size) {
     // bitset* b = malloc(sizeof(bitset));
     // b->size = size;
     // b->data = calloc(bitset_size_in_bytes(b), sizeof(uint8_t));
+    // return b;
     return NULL;
 }
 
@@ -146,6 +147,9 @@ bool bitset_eq(bitset* a, bitset* b) {
 
 void bitset_reset(bitset* b) {
     memset(b->data, 0, bitset_size_in_bytes(b));
+    // for (size_t i = 0; i < bitset_size_in_bytes(b); i++) {
+    //     b->data[i] = 0;
+    // }
 }
 
 #ifdef PC_DEBUG
