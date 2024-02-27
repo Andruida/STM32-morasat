@@ -50,36 +50,6 @@ static uint32_t	_lastPreambleTime;
 /// The current transport operating mode
 static RHMode _mode = RHModeInitialising;
 
-/// This node id
-static uint8_t _thisAddress = RH_BROADCAST_ADDRESS;
-	
-/// Whether the transport is in promiscuous mode
-static bool	_promiscuous;
-
-/// TO header in the last received mesasge
-static uint8_t _rxHeaderTo;
-
-/// FROM header in the last received mesasge
-static uint8_t _rxHeaderFrom;
-
-/// ID header in the last received mesasge
-static uint8_t _rxHeaderId;
-
-/// FLAGS header in the last received mesasge
-static uint8_t _rxHeaderFlags;
-
-/// TO header to send in all messages
-static uint8_t _txHeaderTo = RH_BROADCAST_ADDRESS;
-
-/// FROM header to send in all messages
-static uint8_t _txHeaderFrom = RH_BROADCAST_ADDRESS;
-
-/// ID header to send in all messages
-static uint8_t _txHeaderId = 0;
-
-/// FLAGS header to send in all messages
-static uint8_t _txHeaderFlags = 0;
-
 /// The value of the last received RSSI value, in some transport specific units
 static int16_t _lastRssi;
 
@@ -116,63 +86,63 @@ static uint16_t	_txGood = 0;
 #define CONFIG_NOWHITE (RH_RF69_PACKETCONFIG1_PACKETFORMAT_VARIABLE | RH_RF69_PACKETCONFIG1_DCFREE_NONE | RH_RF69_PACKETCONFIG1_CRC_ON | RH_RF69_PACKETCONFIG1_ADDRESSFILTERING_NONE)
 #define CONFIG_WHITE (RH_RF69_PACKETCONFIG1_PACKETFORMAT_VARIABLE | RH_RF69_PACKETCONFIG1_DCFREE_WHITENING | RH_RF69_PACKETCONFIG1_CRC_ON | RH_RF69_PACKETCONFIG1_ADDRESSFILTERING_NONE)
 #define CONFIG_MANCHESTER (RH_RF69_PACKETCONFIG1_PACKETFORMAT_VARIABLE | RH_RF69_PACKETCONFIG1_DCFREE_MANCHESTER | RH_RF69_PACKETCONFIG1_CRC_ON | RH_RF69_PACKETCONFIG1_ADDRESSFILTERING_NONE)
-static const ModemConfig MODEM_CONFIG_TABLE[] =
-{
-	//	02,		   03,	 04,   05,	 06,   19,	 1a,  37
-	// FSK, No Manchester, no shaping, whitening, CRC, no address filtering
-	// AFC BW == RX BW == 2 x bit rate
-	// Low modulation indexes of ~ 1 at slow speeds do not seem to work very well. Choose MI of 2.
-	{ CONFIG_FSK,  0x3e, 0x80, 0x00, 0x52, 0xf4, 0xf4, CONFIG_WHITE}, // FSK_Rb2Fd5
-	{ CONFIG_FSK,  0x34, 0x15, 0x00, 0x4f, 0xf4, 0xf4, CONFIG_WHITE}, // FSK_Rb2_4Fd4_8
-	{ CONFIG_FSK,  0x1a, 0x0b, 0x00, 0x9d, 0xf4, 0xf4, CONFIG_WHITE}, // FSK_Rb4_8Fd9_6
+// static const ModemConfig MODEM_CONFIG_TABLE[] =
+// {
+// 	//	02,		   03,	 04,   05,	 06,   19,	 1a,  37
+// 	// FSK, No Manchester, no shaping, whitening, CRC, no address filtering
+// 	// AFC BW == RX BW == 2 x bit rate
+// 	// Low modulation indexes of ~ 1 at slow speeds do not seem to work very well. Choose MI of 2.
+// 	{ CONFIG_FSK,  0x3e, 0x80, 0x00, 0x52, 0xf4, 0xf4, CONFIG_WHITE}, // FSK_Rb2Fd5
+// 	{ CONFIG_FSK,  0x34, 0x15, 0x00, 0x4f, 0xf4, 0xf4, CONFIG_WHITE}, // FSK_Rb2_4Fd4_8
+// 	{ CONFIG_FSK,  0x1a, 0x0b, 0x00, 0x9d, 0xf4, 0xf4, CONFIG_WHITE}, // FSK_Rb4_8Fd9_6
 
-	{ CONFIG_FSK,  0x0d, 0x05, 0x01, 0x3b, 0xf4, 0xf4, CONFIG_WHITE}, // FSK_Rb9_6Fd19_2
-	{ CONFIG_FSK,  0x06, 0x83, 0x02, 0x75, 0xf3, 0xf3, CONFIG_WHITE}, // FSK_Rb19_2Fd38_4
-	{ CONFIG_FSK,  0x03, 0x41, 0x04, 0xea, 0xf2, 0xf2, CONFIG_WHITE}, // FSK_Rb38_4Fd76_8
+// 	{ CONFIG_FSK,  0x0d, 0x05, 0x01, 0x3b, 0xf4, 0xf4, CONFIG_WHITE}, // FSK_Rb9_6Fd19_2
+// 	{ CONFIG_FSK,  0x06, 0x83, 0x02, 0x75, 0xf3, 0xf3, CONFIG_WHITE}, // FSK_Rb19_2Fd38_4
+// 	{ CONFIG_FSK,  0x03, 0x41, 0x04, 0xea, 0xf2, 0xf2, CONFIG_WHITE}, // FSK_Rb38_4Fd76_8
 
-	{ CONFIG_FSK,  0x02, 0x2c, 0x07, 0xae, 0xe2, 0xe2, CONFIG_WHITE}, // FSK_Rb57_6Fd120
-	{ CONFIG_FSK,  0x01, 0x00, 0x08, 0x00, 0xe1, 0xe1, CONFIG_WHITE}, // FSK_Rb125Fd125
-	{ CONFIG_FSK,  0x00, 0x80, 0x10, 0x00, 0xe0, 0xe0, CONFIG_WHITE}, // FSK_Rb250Fd250
-	{ CONFIG_FSK,  0x02, 0x40, 0x03, 0x33, 0x42, 0x42, CONFIG_WHITE}, // FSK_Rb55555Fd50
+// 	{ CONFIG_FSK,  0x02, 0x2c, 0x07, 0xae, 0xe2, 0xe2, CONFIG_WHITE}, // FSK_Rb57_6Fd120
+// 	{ CONFIG_FSK,  0x01, 0x00, 0x08, 0x00, 0xe1, 0xe1, CONFIG_WHITE}, // FSK_Rb125Fd125
+// 	{ CONFIG_FSK,  0x00, 0x80, 0x10, 0x00, 0xe0, 0xe0, CONFIG_WHITE}, // FSK_Rb250Fd250
+// 	{ CONFIG_FSK,  0x02, 0x40, 0x03, 0x33, 0x42, 0x42, CONFIG_WHITE}, // FSK_Rb55555Fd50
 
-	//	02,		   03,	 04,   05,	 06,   19,	 1a,  37
-	// GFSK (BT=1.0), No Manchester, whitening, CRC, no address filtering
-	// AFC BW == RX BW == 2 x bit rate
-	{ CONFIG_GFSK, 0x3e, 0x80, 0x00, 0x52, 0xf4, 0xf5, CONFIG_WHITE}, // GFSK_Rb2Fd5
-	{ CONFIG_GFSK, 0x34, 0x15, 0x00, 0x4f, 0xf4, 0xf4, CONFIG_WHITE}, // GFSK_Rb2_4Fd4_8
-	{ CONFIG_GFSK, 0x1a, 0x0b, 0x00, 0x9d, 0xf4, 0xf4, CONFIG_WHITE}, // GFSK_Rb4_8Fd9_6
+// 	//	02,		   03,	 04,   05,	 06,   19,	 1a,  37
+// 	// GFSK (BT=1.0), No Manchester, whitening, CRC, no address filtering
+// 	// AFC BW == RX BW == 2 x bit rate
+// 	{ CONFIG_GFSK, 0x3e, 0x80, 0x00, 0x52, 0xf4, 0xf5, CONFIG_WHITE}, // GFSK_Rb2Fd5
+// 	{ CONFIG_GFSK, 0x34, 0x15, 0x00, 0x4f, 0xf4, 0xf4, CONFIG_WHITE}, // GFSK_Rb2_4Fd4_8
+// 	{ CONFIG_GFSK, 0x1a, 0x0b, 0x00, 0x9d, 0xf4, 0xf4, CONFIG_WHITE}, // GFSK_Rb4_8Fd9_6
 
-	{ CONFIG_GFSK, 0x0d, 0x05, 0x01, 0x3b, 0xf4, 0xf4, CONFIG_WHITE}, // GFSK_Rb9_6Fd19_2
-	{ CONFIG_GFSK, 0x06, 0x83, 0x02, 0x75, 0xf3, 0xf3, CONFIG_WHITE}, // GFSK_Rb19_2Fd38_4
-	{ CONFIG_GFSK, 0x03, 0x41, 0x04, 0xea, 0xf2, 0xf2, CONFIG_WHITE}, // GFSK_Rb38_4Fd76_8
+// 	{ CONFIG_GFSK, 0x0d, 0x05, 0x01, 0x3b, 0xf4, 0xf4, CONFIG_WHITE}, // GFSK_Rb9_6Fd19_2
+// 	{ CONFIG_GFSK, 0x06, 0x83, 0x02, 0x75, 0xf3, 0xf3, CONFIG_WHITE}, // GFSK_Rb19_2Fd38_4
+// 	{ CONFIG_GFSK, 0x03, 0x41, 0x04, 0xea, 0xf2, 0xf2, CONFIG_WHITE}, // GFSK_Rb38_4Fd76_8
 
-	{ CONFIG_GFSK, 0x02, 0x2c, 0x07, 0xae, 0xe2, 0xe2, CONFIG_WHITE}, // GFSK_Rb57_6Fd120
-	{ CONFIG_GFSK, 0x01, 0x00, 0x08, 0x00, 0xe1, 0xe1, CONFIG_WHITE}, // GFSK_Rb125Fd125
-	{ CONFIG_GFSK, 0x00, 0x80, 0x10, 0x00, 0xe0, 0xe0, CONFIG_WHITE}, // GFSK_Rb250Fd250
-	{ CONFIG_GFSK, 0x02, 0x40, 0x03, 0x33, 0x42, 0x42, CONFIG_WHITE}, // GFSK_Rb55555Fd50
+// 	{ CONFIG_GFSK, 0x02, 0x2c, 0x07, 0xae, 0xe2, 0xe2, CONFIG_WHITE}, // GFSK_Rb57_6Fd120
+// 	{ CONFIG_GFSK, 0x01, 0x00, 0x08, 0x00, 0xe1, 0xe1, CONFIG_WHITE}, // GFSK_Rb125Fd125
+// 	{ CONFIG_GFSK, 0x00, 0x80, 0x10, 0x00, 0xe0, 0xe0, CONFIG_WHITE}, // GFSK_Rb250Fd250
+// 	{ CONFIG_GFSK, 0x02, 0x40, 0x03, 0x33, 0x42, 0x42, CONFIG_WHITE}, // GFSK_Rb55555Fd50
 
-	//	02,		   03,	 04,   05,	 06,   19,	 1a,  37
-	// OOK, No Manchester, no shaping, whitening, CRC, no address filtering
-	// with the help of the SX1231 configuration program
-	// AFC BW == RX BW
-	// All OOK configs have the default:
-	// Threshold Type: Peak
-	// Peak Threshold Step: 0.5dB
-	// Peak threshiold dec: ONce per chip
-	// Fixed threshold: 6dB
-	{ CONFIG_OOK,  0x7d, 0x00, 0x00, 0x10, 0x88, 0x88, CONFIG_WHITE}, // OOK_Rb1Bw1
-	{ CONFIG_OOK,  0x68, 0x2b, 0x00, 0x10, 0xf1, 0xf1, CONFIG_WHITE}, // OOK_Rb1_2Bw75
-	{ CONFIG_OOK,  0x34, 0x15, 0x00, 0x10, 0xf5, 0xf5, CONFIG_WHITE}, // OOK_Rb2_4Bw4_8
-	{ CONFIG_OOK,  0x1a, 0x0b, 0x00, 0x10, 0xf4, 0xf4, CONFIG_WHITE}, // OOK_Rb4_8Bw9_6
-	{ CONFIG_OOK,  0x0d, 0x05, 0x00, 0x10, 0xf3, 0xf3, CONFIG_WHITE}, // OOK_Rb9_6Bw19_2
-	{ CONFIG_OOK,  0x06, 0x83, 0x00, 0x10, 0xf2, 0xf2, CONFIG_WHITE}, // OOK_Rb19_2Bw38_4
-	{ CONFIG_OOK,  0x03, 0xe8, 0x00, 0x10, 0xe2, 0xe2, CONFIG_WHITE}, // OOK_Rb32Bw64
+// 	//	02,		   03,	 04,   05,	 06,   19,	 1a,  37
+// 	// OOK, No Manchester, no shaping, whitening, CRC, no address filtering
+// 	// with the help of the SX1231 configuration program
+// 	// AFC BW == RX BW
+// 	// All OOK configs have the default:
+// 	// Threshold Type: Peak
+// 	// Peak Threshold Step: 0.5dB
+// 	// Peak threshiold dec: ONce per chip
+// 	// Fixed threshold: 6dB
+// 	{ CONFIG_OOK,  0x7d, 0x00, 0x00, 0x10, 0x88, 0x88, CONFIG_WHITE}, // OOK_Rb1Bw1
+// 	{ CONFIG_OOK,  0x68, 0x2b, 0x00, 0x10, 0xf1, 0xf1, CONFIG_WHITE}, // OOK_Rb1_2Bw75
+// 	{ CONFIG_OOK,  0x34, 0x15, 0x00, 0x10, 0xf5, 0xf5, CONFIG_WHITE}, // OOK_Rb2_4Bw4_8
+// 	{ CONFIG_OOK,  0x1a, 0x0b, 0x00, 0x10, 0xf4, 0xf4, CONFIG_WHITE}, // OOK_Rb4_8Bw9_6
+// 	{ CONFIG_OOK,  0x0d, 0x05, 0x00, 0x10, 0xf3, 0xf3, CONFIG_WHITE}, // OOK_Rb9_6Bw19_2
+// 	{ CONFIG_OOK,  0x06, 0x83, 0x00, 0x10, 0xf2, 0xf2, CONFIG_WHITE}, // OOK_Rb19_2Bw38_4
+// 	{ CONFIG_OOK,  0x03, 0xe8, 0x00, 0x10, 0xe2, 0xe2, CONFIG_WHITE}, // OOK_Rb32Bw64
 
-//	  { CONFIG_FSK,  0x68, 0x2b, 0x00, 0x52, 0x55, 0x55, CONFIG_WHITE}, // works: Rb1200 Fd 5000 bw10000, DCC 400
-//	  { CONFIG_FSK,  0x0c, 0x80, 0x02, 0x8f, 0x52, 0x52, CONFIG_WHITE}, // works 10/40/80
-//	  { CONFIG_FSK,  0x0c, 0x80, 0x02, 0x8f, 0x53, 0x53, CONFIG_WHITE}, // works 10/40/40
+// //	  { CONFIG_FSK,  0x68, 0x2b, 0x00, 0x52, 0x55, 0x55, CONFIG_WHITE}, // works: Rb1200 Fd 5000 bw10000, DCC 400
+// //	  { CONFIG_FSK,  0x0c, 0x80, 0x02, 0x8f, 0x52, 0x52, CONFIG_WHITE}, // works 10/40/80
+// //	  { CONFIG_FSK,  0x0c, 0x80, 0x02, 0x8f, 0x53, 0x53, CONFIG_WHITE}, // works 10/40/40
 
-};
+// };
 
 #define LOW 0
 #define HIGH 1
@@ -187,15 +157,11 @@ void spi_init() {
 
 uint8_t spi_transfer(uint8_t dataout)
 {
-	uint8_t datain = 0;
-    
     //HAL_SPI_TransmitReceive(_handle, dataout, datain, 1, 1000);
 	//LL_SPI_WriteReg(SPI1, DR, dataout);
 	LL_SPI_TransmitData8(SPI1, dataout);
 	while (!LL_SPI_IsActiveFlag_RXNE(SPI1));
-	datain = LL_SPI_ReceiveData8(SPI1);
-
-	return datain;
+	return LL_SPI_ReceiveData8(SPI1);
 }
 
 uint8_t spiRead(uint8_t reg)
@@ -321,22 +287,12 @@ void readFifo()
 	if (payloadlen <= RH_RF69_MAX_ENCRYPTABLE_PAYLOAD_LEN &&
 	payloadlen >= RH_RF69_HEADER_LEN)
 	{
-	_rxHeaderTo = spi_transfer(0);
-	// Check addressing
-	if (_promiscuous ||
-		_rxHeaderTo == _thisAddress ||
-		_rxHeaderTo == RH_BROADCAST_ADDRESS)
-	{
-		// Get the rest of the headers
-		_rxHeaderFrom  = spi_transfer(0);
-		_rxHeaderId    = spi_transfer(0);
-		_rxHeaderFlags = spi_transfer(0);
-		// And now the real payload
-		for (_bufLen = 0; _bufLen < (payloadlen - RH_RF69_HEADER_LEN); _bufLen++)
-		_buf[_bufLen] = spi_transfer(0);
-		_rxGood++;
-		_rxBufValid = true;
-	}
+	
+	// And now the real payload
+	for (_bufLen = 0; _bufLen < (payloadlen - RH_RF69_HEADER_LEN); _bufLen++)
+	_buf[_bufLen] = spi_transfer(0);
+	_rxGood++;
+	_rxBufValid = true;
 	}
 	__SET_NSS();
 	// Any junk remaining in the FIFO will be cleared next time we go to receive mode.
@@ -352,10 +308,10 @@ int8_t temperatureRead()
 	return 166 - spiRead(RH_RF69_REG_4F_TEMP2); // Very approximate, based on observation
 }
 
-bool setFrequency(float centre)
+bool setFrequency()
 {
 	// Frf = FRF / FSTEP
-	uint32_t frf = (uint32_t)((centre * 1000000.0) / RH_RF69_FSTEP);
+	uint32_t frf = RH_RF69_868MHZ; //(uint32_t)((centre * 1000000.0) / RH_RF69_FSTEP);
 	spiWrite(RH_RF69_REG_07_FRFMSB, (frf >> 16) & 0xff);
 	spiWrite(RH_RF69_REG_08_FRFMID, (frf >> 8) & 0xff);
 	spiWrite(RH_RF69_REG_09_FRFLSB, frf & 0xff);
@@ -523,11 +479,11 @@ void setModemRegisters(const ModemConfig* config)
 // Returns true if its a valid choice
 bool setModemConfig(ModemConfigChoice index)
 {
-	if (index > (signed int)(sizeof(MODEM_CONFIG_TABLE) / sizeof(ModemConfig)))
-		return false;
+	// if (index > (signed int)(sizeof(MODEM_CONFIG_TABLE) / sizeof(ModemConfig)))
+	// 	return false;
 
-	ModemConfig cfg;
-	memcpy(&cfg, &MODEM_CONFIG_TABLE[index], sizeof(ModemConfig));
+	ModemConfig cfg = { CONFIG_GFSK, 0x34, 0x15, 0x00, 0x4f, 0xf4, 0xf4, CONFIG_WHITE};
+	// memcpy(&cfg, &MODEM_CONFIG_TABLE[index], sizeof(ModemConfig));
 	setModemRegisters(&cfg);
 
 	return true;
@@ -654,12 +610,7 @@ bool send(const uint8_t* data, uint8_t len)
 
 	__RESET_NSS();
 	spi_transfer(RH_RF69_REG_00_FIFO | RH_RF69_SPI_WRITE_MASK); // Send the start address with the write mask on
-	spi_transfer(len + RH_RF69_HEADER_LEN); // Include length of headers
-
-	spi_transfer(_txHeaderTo);
-	spi_transfer(_txHeaderFrom);
-	spi_transfer(_txHeaderId);
-	spi_transfer(_txHeaderFlags);
+	spi_transfer(len);
 	// Now the payload
 	while (len--)
 	spi_transfer(*data++);
@@ -689,7 +640,7 @@ bool waitPacketSent()
 }
 
 
-uint8_t maxMessageLength()
+inline uint8_t maxMessageLength()
 {
 	return RH_RF69_MAX_MESSAGE_LEN;
 }
@@ -715,27 +666,7 @@ bool printRegisters()
 }
 #endif
 
-uint8_t headerTo()
-{
-	return _rxHeaderTo;
-}
-
-uint8_t headerFrom()
-{
-	return _rxHeaderFrom;
-}
-
-uint8_t headerId()
-{
-	return _rxHeaderId;
-}
-
-uint8_t headerFlags()
-{
-	return _rxHeaderFlags;
-}
-
-int16_t lastRssi()
+inline int16_t lastRssi()
 {
 	return _lastRssi;
 }

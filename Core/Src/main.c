@@ -140,9 +140,10 @@ int main(void)
 
   packetnum = 0;
   if (!init()) Error_Handler();
-  if (!setFrequency(868.0f)) Error_Handler();
+  //if (!setFrequency()) Error_Handler();
   setModemConfig(GFSK_Rb2_4Fd4_8);
   setPreambleLength(4);
+  setTxPower(-18, false);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -170,7 +171,6 @@ int main(void)
     send((uint8_t*)radiopacket, 18);
     #endif
 		waitPacketSent();
-    LL_GPIO_TogglePin(RF69_NSS_GPIO_Port, RF69_NSS_Pin);
     delay(1000);
 
 

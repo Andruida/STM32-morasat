@@ -20,6 +20,7 @@
 
 // The Frequency Synthesizer step = RH_RF69_FXOSC / 2^^19
 #define RH_RF69_FSTEP  (RH_RF69_FXOSC / 524288)
+#define RH_RF69_868MHZ  14221312 //(uint32_t)((centre * 1000000.0) / RH_RF69_FSTEP);
 
 // This is the maximum number of interrupts the driver can support
 // Most Arduinos can handle 2, Megas can handle more
@@ -789,7 +790,7 @@
     /// different frequency ranges, and setting a frequency outside that range of your radio will probably not work
     /// \param[in] afcPullInRange Not used
     /// \return true if the selected frquency centre is within range
-    bool        setFrequency(float centre);
+    bool        setFrequency();
 
     /// Reads and returns the current RSSI value. 
     /// Causes the current signal strength to be measured and returned
